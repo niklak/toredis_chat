@@ -1,0 +1,13 @@
+<div class="panel panel-default" id="m{{ message["id"] }}">
+    <div class="row">
+        <div class="col-md-2 text-right">
+            <span class="text-info">{{ message["user"] }}:</span>
+        </div>
+        <div class="col-md-8">
+            {% module linkify(message["body"]) %}
+        </div>
+        <div class="col-md-2 text-muted small">
+            <span>{{ message["time"] }}</span>
+        </div>
+    </div>
+</div>

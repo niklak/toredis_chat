@@ -1,0 +1,16 @@
+*.py[co]
+*.sw[po]
+*.bak
+*.orig
+*~
+*.log
+*.egg-info
+*.py.disabled
+.project
+.pydevproject
+/venv/
+/virtenv/
+/dist/
+/build/
+__pycache__/
+**/.idea/*
