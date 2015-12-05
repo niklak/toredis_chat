@@ -33,25 +33,36 @@ class LoginHandler(BaseHandler):
 class IndexHandler(BaseHandler):
     def get(self):
         super().get()
-        cache = r.lrange('messages', 0, -1)
+        cache = r.lrange('channels:main', 0, -1)
         if len(cache) > 0:
             logging.info('got cache %r', cache)
             messages = (ujson.loads(x) for x in cache)
         else:
             messages = []
-        self.render('index.html', messages=messages, title='Chat')
+        self.render('index.html', messages=messages, title='main')
+
+
+class ChannelHandler(BaseHandler):
+    def get(self, *args, **kwargs):
+        super().get()
+        title = kwargs.get('channel')
+        cache = r.lrange('channels:{}'.format(title), 0, -1)
+        if len(cache) > 0:
+            logging.info('got cache %r', cache)
+            messages = (ujson.loads(x) for x in cache)
+        else:
+            messages = []
+        self.render('index.html', messages=messages, title=title)
 
 
 class ChatSocketHandler(websocket.WebSocketHandler):
-    # redis.Redis(unix_socket_path='/tmp/redis.sock')
     waiters = set()
-    cache = r.lrange('messages', 0, -1)
 
     def get_compression_options(self):
         # Non-None enables compression with default options.
         return {}
 
-    def open(self):
+    def open(self, *args, **kwargs):
         self.waiters.add(self)
 
     def on_close(self):
@@ -59,8 +70,8 @@ class ChatSocketHandler(websocket.WebSocketHandler):
 
     @classmethod
     def update_cache(cls, chat):
-        r.rpush('messages', ujson.dumps(chat))
-        r.ltrim('messages', 0, 10)
+        r.rpush('channels:main', ujson.dumps(chat))
+        r.ltrim('channels:main', 0, 10)
 
     @classmethod
     def send_updates(cls, chat):
@@ -87,3 +98,51 @@ class ChatSocketHandler(websocket.WebSocketHandler):
         #self.write_message(chat)    # for 1
         self.update_cache(chat)
         self.send_updates(chat)
+
+
+class ChatChannelsSocketHandler(websocket.WebSocketHandler):
+    waiters = set()
+
+    def get_compression_options(self):
+        # Non-None enables compression with default options.
+        return {}
+
+    def open(self, *args, **kwargs):
+        setattr(self, 'channel', kwargs.get('channel', 'main'))
+        self.waiters.add((self.channel, self))
+
+    def on_close(self):
+        self.waiters.remove((self.channel, self))
+
+    @classmethod
+    def update_cache(cls, chat, channel):
+        u_channel = 'channels:{}'.format(channel)
+        r.rpush(u_channel, ujson.dumps(chat))
+        r.ltrim(u_channel, 0, 10)
+
+    @classmethod
+    def send_updates(cls, chat, channel):
+        logging.info('sending message to %d waiters', len(cls.waiters))
+        for channel, waiter in cls.waiters:
+            if channel == channel:
+                logging.info(waiter)
+                try:
+                    waiter.write_message(chat)
+                except:
+                    logging.error('Error sending message', exc_info=True)
+
+    def on_message(self, message):
+        logging.info('got message %r', message)
+        parsed = escape.json_decode(message)
+        chat = {
+            'id': str(uuid.uuid4()),
+            'body': parsed['body'],
+            'user': parsed['user'],
+            'time': datetime.datetime.now().strftime('%H:%M:%S %Y-%m-%d')
+            }
+        chat['html'] = escape.to_basestring(
+            self.render_string('message.html', message=chat))
+
+        #self.write_message(chat)    # for 1
+        self.update_cache(chat, self.channel)
+        self.send_updates(chat, self.channel)
