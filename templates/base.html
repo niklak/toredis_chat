@@ -6,12 +6,13 @@
     <title>{{ title }}</title>
 </head>
 <body>
+{% if channels %}
+    {% include "include/navbar.html" %}
+{% end %}
 <div class="container">
     <div class="row">
         <div class="col-md-12 text-center">
-            {% if current_user %}
-            <h1>You signed as {{ current_user }}</h1>
-            {% else %}
+            {% if not current_user %}
             <h1>Please sign in</h1>
             {% end %}
         </div>

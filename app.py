@@ -1,7 +1,7 @@
 from tornado import web, ioloop, options
 import conf
-from handlers import IndexHandler, ChannelHandler, LoginHandler, \
-    ChatSocketHandler, ChatChannelsSocketHandler
+from handlers import ChannelHandler, LoginHandler, LogoutHandler, \
+    ChatSocketHandler
 
 
 options.define("port", default=8888, help="run on the given port", type=int)
@@ -10,11 +10,12 @@ options.define("port", default=8888, help="run on the given port", type=int)
 class Application(web.Application):
     def __init__(self):
         handlers = [
-            (r"/", IndexHandler),
+            (r"/", ChannelHandler),
             (r"/channels/(?P<channel>\w+)/", ChannelHandler),
             (r"/login", LoginHandler),
+            (r"/logout", LogoutHandler),
             (r"/chatsocket/", ChatSocketHandler),
-            (r"/chatsocket/(?P<channel>\w+)/", ChatChannelsSocketHandler),
+            (r"/chatsocket/(?P<channel>\w+)/", ChatSocketHandler),
         ]
         super(Application, self).__init__(handlers=handlers, **conf.settings)
 

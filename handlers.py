@@ -5,57 +5,54 @@ import ujson
 import datetime
 from tornado import web, websocket, escape
 
-r = redis.StrictRedis(host='localhost', port=6379, db=0)
+# Для одного клиента!
+r = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
 # r = redis.Redis(unix_socket_path='/var/run/redis/redis.sock')
 
 # реализовать комнаты и приватные переписки
+# реализовать создание комнат
+# сделать аккуратно!
+
+# Попробовать сделать pubsub НЕТ, не в этот раз
+# Сделать один обработчик вместо двух!
 
 
-class BaseHandler(web.RequestHandler):
+class UserMixin:
     def get_current_user(self):
-        return self.get_secure_cookie('user')
-
-    def get(self):
-        if not self.current_user:
-            self.redirect('/login')
-            return
+        user = self.get_secure_cookie('user')
+        return escape.xhtml_escape(user) if user else None
 
 
-class LoginHandler(BaseHandler):
+class LoginHandler(web.RequestHandler):
     def get(self):
         self.render('login.html', title='Authentication')
 
     def post(self):
         self.set_secure_cookie('user', self.get_argument('name'))
         self.redirect('/')
-        
 
-class IndexHandler(BaseHandler):
+
+class LogoutHandler(web.RequestHandler):
+    @web.authenticated
     def get(self):
-        super().get()
-        cache = r.lrange('channels:main', 0, -1)
-        if len(cache) > 0:
-            logging.info('got cache %r', cache)
-            messages = (ujson.loads(x) for x in cache)
-        else:
-            messages = []
-        self.render('index.html', messages=messages, title='main')
+        self.clear_cookie('user')
+        self.redirect('/')
 
 
-class ChannelHandler(BaseHandler):
+class ChannelHandler(UserMixin, web.RequestHandler):
+    @web.authenticated
     def get(self, *args, **kwargs):
-        super().get()
-        title = kwargs.get('channel')
+        title = kwargs.get('channel', 'main')
         cache = r.lrange('channels:{}'.format(title), 0, -1)
-        if len(cache) > 0:
-            logging.info('got cache %r', cache)
-            messages = (ujson.loads(x) for x in cache)
-        else:
-            messages = []
-        self.render('index.html', messages=messages, title=title)
+        messages = (ujson.loads(x) for x in cache) if len(cache) > 0 else []
+        u_cache = r.zrange('channels:{}:users'.format(title), 0, -1)
+        users = u_cache if u_cache else ['Nobody here']
+        channels = ('ORANGERY', 'ISOLATOR', 'WHATEVER', 'MILKY WAY', 'COOKIES')
+        self.render('index.html', messages=messages, title=title, users=users, channels=channels)
 
 
-class ChatSocketHandler(websocket.WebSocketHandler):
+class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
+
     waiters = set()
 
     def get_compression_options(self):
@@ -63,86 +60,62 @@ class ChatSocketHandler(websocket.WebSocketHandler):
         return {}
 
     def open(self, *args, **kwargs):
-        self.waiters.add(self)
+        self.chnl = kwargs.get('channel', 'main')
+        logging.info('USER {} JOINED CHANNEL {}'.format(self.current_user, self.chnl))
+        self.waiters.add((self.chnl, self))
 
-    def on_close(self):
-        self.waiters.remove(self)
+        self.chnl_key = 'channels:{}:users'.format(self.chnl)
+        count = int(r.zcount(self.chnl_key, 0, - 1))
+        r.zadd(self.chnl_key, count+1, self.current_user)
 
-    @classmethod
-    def update_cache(cls, chat):
-        r.rpush('channels:main', ujson.dumps(chat))
-        r.ltrim('channels:main', 0, 10)
+        users = r.zrange(self.chnl_key, 0, -1)
+        chat = self.perform_user_list(users)
+        self.send_updates(chat)
 
-    @classmethod
-    def send_updates(cls, chat):
-        logging.info('sending message to %d waiters', len(cls.waiters))
-        for waiter in cls.waiters:
-            logging.info(waiter)
+    def perform_user_list(self, users):
+        return {'parent': 'user_list',
+                'html': escape.to_basestring(
+                    self.render_string('include/user_list.html', users=users)
+                )}
+
+    def send_updates(self, chat):
+        logging.info('Total: %d waiters', len(self.waiters))
+        chnl_waiters = tuple(filter(lambda x: x[0] == self.chnl, self.waiters))
+        logging.info('Sending to %d waiters', len(chnl_waiters))
+        logging.info(chat)
+        for _, waiter in chnl_waiters:
             try:
                 waiter.write_message(chat)
             except:
                 logging.error('Error sending message', exc_info=True)
 
-    def on_message(self, message):
-        logging.info('got message %r', message)
-        parsed = escape.json_decode(message)
-        chat = {
-            'id': str(uuid.uuid4()),
-            'body': parsed['body'],
-            'user': parsed['user'],
-            'time': datetime.datetime.now().strftime('%H:%M:%S %Y-%m-%d')
-            }
-        chat['html'] = escape.to_basestring(
-            self.render_string('message.html', message=chat))
+    def on_close(self):
 
-        #self.write_message(chat)    # for 1
-        self.update_cache(chat)
+        r.zrem(self.chnl_key, self.current_user)
+        users = r.zrange(self.chnl_key, 0, -1)
+
+        self.waiters.remove((self.chnl, self))
+        logging.info('USER {} LEFT CHANNEL {}'.format(self.current_user, self.chnl))
+
+        chat = self.perform_user_list(users)
         self.send_updates(chat)
 
-
-class ChatChannelsSocketHandler(websocket.WebSocketHandler):
-    waiters = set()
-
-    def get_compression_options(self):
-        # Non-None enables compression with default options.
-        return {}
-
-    def open(self, *args, **kwargs):
-        setattr(self, 'channel', kwargs.get('channel', 'main'))
-        self.waiters.add((self.channel, self))
-
-    def on_close(self):
-        self.waiters.remove((self.channel, self))
-
-    @classmethod
-    def update_cache(cls, chat, channel):
-        u_channel = 'channels:{}'.format(channel)
-        r.rpush(u_channel, ujson.dumps(chat))
-        r.ltrim(u_channel, 0, 10)
-
-    @classmethod
-    def send_updates(cls, chat, channel):
-        logging.info('sending message to %d waiters', len(cls.waiters))
-        for channel, waiter in cls.waiters:
-            if channel == channel:
-                logging.info(waiter)
-                try:
-                    waiter.write_message(chat)
-                except:
-                    logging.error('Error sending message', exc_info=True)
+    def update_channel_history(self, chat):
+        chnl = 'channels:{}'.format(self.chnl)
+        r.rpush(chnl, escape.json_encode(chat))
+        r.ltrim(chnl, -25, -1)
 
     def on_message(self, message):
         logging.info('got message %r', message)
         parsed = escape.json_decode(message)
         chat = {
-            'id': str(uuid.uuid4()),
+            'parent': 'inbox',
             'body': parsed['body'],
             'user': parsed['user'],
             'time': datetime.datetime.now().strftime('%H:%M:%S %Y-%m-%d')
             }
+        self.update_channel_history(chat)
         chat['html'] = escape.to_basestring(
-            self.render_string('message.html', message=chat))
-
-        #self.write_message(chat)    # for 1
-        self.update_cache(chat, self.channel)
-        self.send_updates(chat, self.channel)
+            self.render_string('include/message.html', message=chat)
+        )
+        self.send_updates(chat)

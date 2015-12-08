@@ -1,54 +1,55 @@
-$(document).ready(function() {
-    if (!window.console) window.console = {};
-    if (!window.console.log) window.console.log = function() {};
+document.onready = function(){
 
-    $("#messageform").on("submit", function() {
-        newMessage($(this));
+    var socket = new SocketHandler();
+    var form = document.getElementById('messageform');
+    form.onsubmit = function(){
+        socket.send_message(form);
         return false;
-    });
-    $("#messageform").on("keypress", function(e) {
+    };
+    form.onkeypress = function(e){
         if (e.keyCode == 13) {
-            newMessage($(this));
+            socket.send_message(form);
             return false;
         }
-    });
-    $("#message").select();
-    updater.start();
-});
-
-function newMessage(form) {
-    var message = form.formToDict();
-    updater.socket.send(JSON.stringify(message));
-    form.find("input[type=text]").val("").select();
-}
-
-jQuery.fn.formToDict = function() {
-    var fields = this.serializeArray();
-    var json = {}
-    for (var i = 0; i < fields.length; i++) {
-        json[fields[i].name] = fields[i].value;
-    }
-    if (json.next) delete json.next;
-    return json;
+    };
+    inbox = document.getElementById('inbox');
+    inbox.scrollTop = inbox.scrollHeight;
+    document.getElementById('message').select();
 };
+/*
+window.onbeforeunload = function(){
+    socket.close();
+};
+*/
 
-var updater = {
-    socket: null,
+var SocketHandler = function() {
+    var url = "ws://" + location.host + "/chatsocket/";
+    var title = document.getElementById('channel').getAttribute('data-title');
+    url += (title == 'main') ? '' : title + '/';
 
-    start: function() {
-        var url = "ws://" + location.host + "/chatsocket/";
-        updater.socket = new WebSocket(url);
-        updater.socket.onmessage = function(event) {
-            updater.showMessage(JSON.parse(event.data));
+    var sock = new WebSocket(url);
+    sock.onmessage = function(event) {
+        var message = JSON.parse(event.data);
+        var parent = document.getElementById(message.parent);
+        if (message.parent == 'inbox'){
+            parent.innerHTML += message.html;
+            parent.scrollTop = parent.scrollHeight;
+
         }
-    },
-
-    showMessage: function(message) {
-        var existing = $("#m" + message.id);
-        if (existing.length > 0) return;
-        var node = $(message.html);
-        node.hide();
-        $("#inbox").append(node);
-        node.slideDown();
-    }
-};
+        else{
+            parent.innerHTML = message.html;
+        }
+    };
+    this.send_message = function(form){
+        var elements = form.elements;
+        var data = {};
+        var i = 0;
+        for (i; i < elements.length; i++){
+            data[elements[i].name] = elements[i].value;
+        }
+        sock.send(JSON.stringify(data));
+        var input = form.querySelector("input[type=text]");
+        input.value = '';
+        input.select();
+    };
+}
