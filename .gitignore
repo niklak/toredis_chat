@@ -1,3 +1,5 @@
+/old
+/unsafe
 *.py[co]
 *.sw[po]
 *.bak

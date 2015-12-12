@@ -1,20 +1,13 @@
 import logging
-import uuid
-import redis
-import ujson
 import datetime
+import redis
 from tornado import web, websocket, escape
 
-# Для одного клиента!
+# In this case we use 1 redis connection(client) for all queries
 r = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
-# r = redis.Redis(unix_socket_path='/var/run/redis/redis.sock')
 
-# реализовать комнаты и приватные переписки
-# реализовать создание комнат
-# сделать аккуратно!
 
-# Попробовать сделать pubsub НЕТ, не в этот раз
-# Сделать один обработчик вместо двух!
+# It is not a publish / subscribe example
 
 
 class UserMixin:
@@ -44,15 +37,18 @@ class ChannelHandler(UserMixin, web.RequestHandler):
     def get(self, *args, **kwargs):
         title = kwargs.get('channel', 'main')
         cache = r.lrange('channels:{}'.format(title), 0, -1)
-        messages = (ujson.loads(x) for x in cache) if len(cache) > 0 else []
-        u_cache = r.zrange('channels:{}:users'.format(title), 0, -1)
-        users = u_cache if u_cache else ['Nobody here']
+        messages = (escape.json_decode(x) for x in cache) if cache else []
+        user_cache = r.zrange('channels:{}:users'.format(title), 0, -1)
+        users = user_cache if user_cache else ['Nobody here']
         channels = ('ORANGERY', 'ISOLATOR', 'WHATEVER', 'MILKY WAY', 'COOKIES')
-        self.render('index.html', messages=messages, title=title, users=users, channels=channels)
+        self.render('index.html', messages=messages,
+                    title=title, users=users, channels=channels)
 
 
 class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
-
+    # Waiters set can contain objects, tuple, named_tuple
+    # or some construction containing waiter objects (instance of this class)
+    # and its identifier.
     waiters = set()
 
     def get_compression_options(self):
@@ -61,14 +57,14 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
 
     def open(self, *args, **kwargs):
         self.chnl = kwargs.get('channel', 'main')
-        logging.info('USER {} JOINED CHANNEL {}'.format(self.current_user, self.chnl))
         self.waiters.add((self.chnl, self))
 
         self.chnl_key = 'channels:{}:users'.format(self.chnl)
         count = int(r.zcount(self.chnl_key, 0, - 1))
         r.zadd(self.chnl_key, count+1, self.current_user)
-
         users = r.zrange(self.chnl_key, 0, -1)
+
+        logging.info('USER {} JOINED CHANNEL {}'.format(self.current_user, self.chnl))
         chat = self.perform_user_list(users)
         self.send_updates(chat)
 
