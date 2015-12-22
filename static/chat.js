@@ -23,9 +23,8 @@ window.onbeforeunload = function(){
 */
 
 var SocketHandler = function() {
-    var url = "ws://" + location.host + "/chatsocket/";
     var title = document.getElementById('channel').getAttribute('data-title');
-    url += (title == 'main') ? '' : title + '/';
+    var url = "ws://" + location.host + "/chatsocket/" + title + '/';
 
     var sock = new WebSocket(url);
     sock.onmessage = function(event) {
@@ -40,6 +39,17 @@ var SocketHandler = function() {
             parent.innerHTML = message.html;
         }
     };
+    sock.onerror = function(event){
+        // delete in production
+        console.log('SERVER ERROR HAS OCCURRED!')
+    };
+    sock.onclose = function(event){
+        console.log(event); // delete in production
+        var ulist = document.getElementById('user_list');
+        ulist.innerHTML = '<h4>Information unavailable</h4>';
+        var error_span = document.getElementById('error');
+        error_span.innerHTML = 'Sorry! Server has closed the connection!';
+    };
     this.send_message = function(form){
         var elements = form.elements;
         var data = {};
@@ -52,4 +62,4 @@ var SocketHandler = function() {
         input.value = '';
         input.select();
     };
-}
+};

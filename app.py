@@ -1,28 +1,26 @@
 from tornado import web, ioloop, options
 import conf
-from handlers import ChannelHandler, LoginHandler, LogoutHandler, \
-    ChatSocketHandler
-
+import handlers
 
 options.define("port", default=8888, help="run on the given port", type=int)
 
 
 class Application(web.Application):
     def __init__(self):
-        handlers = [
-            (r"/", ChannelHandler),
-            (r"/channels/(?P<channel>\w+)/", ChannelHandler),
-            (r"/login", LoginHandler),
-            (r"/logout", LogoutHandler),
-            (r"/chatsocket/", ChatSocketHandler),
-            (r"/chatsocket/(?P<channel>\w+)/", ChatSocketHandler),
+        h = [
+            (r"/", handlers.ChannelHandler),
+            (r"/channels/(?P<channel>\w+)/", handlers.ChannelHandler),
+            (r"/login", handlers.LoginHandler),
+            (r"/logout", handlers.LogoutHandler),
+            (r"/chatsocket/(?P<channel>\w+)/", handlers.ChatSocketHandler),
         ]
-        super(Application, self).__init__(handlers=handlers, **conf.settings)
+        super(Application, self).__init__(handlers=h, **conf.settings)
 
 
 def main():
     options.parse_command_line()
     app = Application()
+    # single thread && single process
     app.listen(options.options.port)
     ioloop.IOLoop.current().start()
 

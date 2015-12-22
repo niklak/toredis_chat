@@ -4,7 +4,7 @@ import redis
 from tornado import web, websocket, escape
 
 # In this case we use 1 redis connection(client) for all queries
-r = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
+r = redis.StrictRedis(host='localhost', db=1, port=6379, decode_responses=True)
 
 
 # It is not a publish / subscribe example
@@ -115,3 +115,8 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
             self.render_string('include/message.html', message=chat)
         )
         self.send_updates(chat)
+
+    def __del__(self):
+        r.zrem(self.chnl_key, self.current_user)
+        logging.info('PUSH OUT USER {} '
+                     'FROM CHANNEL {}'.format(self.current_user, self.chnl))
