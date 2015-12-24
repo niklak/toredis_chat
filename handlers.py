@@ -64,26 +64,10 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
         r.zadd(self.chnl_key, count+1, self.current_user)
         users = r.zrange(self.chnl_key, 0, -1)
 
-        logging.info('USER {} JOINED CHANNEL {}'.format(self.current_user, self.chnl))
         chat = self.perform_user_list(users)
         self.send_updates(chat)
 
-    def perform_user_list(self, users):
-        return {'parent': 'user_list',
-                'html': escape.to_basestring(
-                    self.render_string('include/user_list.html', users=users)
-                )}
-
-    def send_updates(self, chat):
-        logging.info('Total: %d waiters', len(self.waiters))
-        chnl_waiters = tuple(filter(lambda x: x[0] == self.chnl, self.waiters))
-        logging.info('Sending to %d waiters', len(chnl_waiters))
-        logging.info(chat)
-        for _, waiter in chnl_waiters:
-            try:
-                waiter.write_message(chat)
-            except:
-                logging.error('Error sending message', exc_info=True)
+        self.log('JOINED')
 
     def on_close(self):
 
@@ -91,22 +75,17 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
         users = r.zrange(self.chnl_key, 0, -1)
 
         self.waiters.remove((self.chnl, self))
-        logging.info('USER {} LEFT CHANNEL {}'.format(self.current_user, self.chnl))
 
         chat = self.perform_user_list(users)
         self.send_updates(chat)
 
-    def update_channel_history(self, chat):
-        chnl = 'channels:{}'.format(self.chnl)
-        r.rpush(chnl, escape.json_encode(chat))
-        r.ltrim(chnl, -25, -1)
+        self.log('LEFT')
 
     def on_message(self, message):
-        logging.info('got message %r', message)
         parsed = escape.json_decode(message)
         chat = {
             'parent': 'inbox',
-            'body': parsed['body'],
+            'body': parsed['body'] if len(parsed['body']) <= 128 else 'D`oh.',
             'user': parsed['user'],
             'time': datetime.datetime.now().strftime('%H:%M:%S %Y-%m-%d')
             }
@@ -116,7 +95,30 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
         )
         self.send_updates(chat)
 
+    def log(self, event):
+        logging.info('USER {} {} CHANNEL {}'.format(self.current_user,
+                                                    event, self.chnl))
+
+    def perform_user_list(self, users):
+        return {'parent': 'user_list',
+                'html': escape.to_basestring(
+                    self.render_string('include/user_list.html', users=users)
+                )}
+
+    def send_updates(self, chat):
+        chnl_waiters = tuple(filter(lambda x: x[0] == self.chnl, self.waiters))
+        logging.info('Sending message to %d waiters', len(chnl_waiters))
+        for _, waiter in chnl_waiters:
+            try:
+                waiter.write_message(chat)
+            except:
+                logging.error('Error sending message', exc_info=True)
+
+    def update_channel_history(self, chat):
+        chnl = 'channels:{}'.format(self.chnl)
+        r.rpush(chnl, escape.json_encode(chat))
+        r.ltrim(chnl, -25, -1)
+
     def __del__(self):
         r.zrem(self.chnl_key, self.current_user)
-        logging.info('PUSH OUT USER {} '
-                     'FROM CHANNEL {}'.format(self.current_user, self.chnl))
+        self.log('PUSHED OUT')

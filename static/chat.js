@@ -1,8 +1,8 @@
-document.onready = function(){
-
+window.onload = function(){
+    console.log('READY!');
     var socket = new SocketHandler();
     var form = document.getElementById('messageform');
-    form.onsubmit = function(){
+    form.onsubmit = function(e){
         socket.send_message(form);
         return false;
     };

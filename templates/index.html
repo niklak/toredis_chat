@@ -19,7 +19,8 @@
         </div>
         <div class="col-md-9">
             <div class="row">
-                <div class="col-md-12 bg-info" id="inbox" style="overflow-y:scroll; height: 400px;">
+                <div class="col-md-12 bg-success" id="inbox"
+                     style="overflow-y:scroll; height: 400px; padding-top: 5px;">
                 {% for message in messages %}
                     {% include "include/message.html" %}
                 {% end %}
@@ -40,7 +41,7 @@
                                 <div class="input-group">
                                     <input name="body" id="message" type="text" class="form-control" placeholder="start typing">
                                     <span class="input-group-btn">
-                                        <button type="submit" class="btn btn-default">SEND</button>
+                                        <button type="submit" class="btn btn-primary">SEND</button>
                                     </span>
                                 </div>
                             </div>

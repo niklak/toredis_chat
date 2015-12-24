@@ -3,7 +3,7 @@
         <div class="col-md-2 text-right">
             <b class="text-info">{{ message["user"] }}:</b>
         </div>
-        <div class="col-md-8">
+        <div class="col-md-8" style="word-wrap: break-word;">
             {% module linkify(message["body"]) %}
         </div>
         <div class="col-md-2 text-muted small">

@@ -15,4 +15,5 @@
 /dist/
 /build/
 __pycache__/
+/run
 **/.idea/*
