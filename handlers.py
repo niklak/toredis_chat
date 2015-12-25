@@ -4,9 +4,7 @@ import redis
 from tornado import web, websocket, escape
 
 # In this case we use 1 redis connection(client) for all queries
-pool = redis.ConnectionPool(connection_class=redis.UnixDomainSocketConnection,
-                            path='/var/run/redis/redis.sock')
-r = redis.StrictRedis(connection_pool=pool, db=1, decode_responses=True,)
+r = redis.StrictRedis(db=1, decode_responses=True)
 
 
 # It is not a publish / subscribe example
