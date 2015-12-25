@@ -16,4 +16,5 @@
 /build/
 __pycache__/
 /run
+/logs
 **/.idea/*
