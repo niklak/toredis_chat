@@ -6,7 +6,8 @@ from tornado import web, websocket, escape
 # In this case we use 1 redis connection(client) for all queries
 r = redis.StrictRedis(db=1, decode_responses=True)
 
-
+logger = logging.getLogger('info-log')
+logger.disabled = True
 # It is not a publish / subscribe example
 
 
@@ -96,7 +97,7 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
         self.send_updates(chat)
 
     def log(self, event):
-        logging.info('USER {} {} CHANNEL {}'.format(self.current_user,
+        logger.info('USER {} {} CHANNEL {}'.format(self.current_user,
                                                     event, self.chnl))
 
     def perform_user_list(self, users):
@@ -107,12 +108,12 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
 
     def send_updates(self, chat):
         chnl_waiters = tuple(filter(lambda x: x[0] == self.chnl, self.waiters))
-        logging.info('Sending message to %d waiters', len(chnl_waiters))
+        logger.info('Sending message to %d waiters', len(chnl_waiters))
         for _, waiter in chnl_waiters:
             try:
                 waiter.write_message(chat)
             except:
-                logging.error('Error sending message', exc_info=True)
+                logger.error('Error sending message', exc_info=True)
 
     def update_channel_history(self, chat):
         chnl = 'channels:{}'.format(self.chnl)
