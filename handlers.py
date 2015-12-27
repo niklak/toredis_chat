@@ -4,7 +4,7 @@ import redis
 from tornado import web, websocket, escape
 
 # In this case we use 1 redis connection(client) for all queries
-r = redis.StrictRedis(db=1, decode_responses=True)
+r = redis.StrictRedis(db=1)
 
 logger = logging.getLogger('info-log')
 logger.disabled = True
