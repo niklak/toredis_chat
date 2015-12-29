@@ -2,7 +2,7 @@
 
 This example does not uses redis publish / subscribe mechanism.
 It is based on tornado websocket example but it uses redis instead cache list. 
-Also it demonstrates how can chat rooms (channels) implemented.
+Also it demonstrates how chat rooms (channels) can be implemented.
 
 This example chat requires:
 
