@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="robots" content="nofollow" />
@@ -13,7 +13,7 @@
     <div class="row">
         <div class="col-md-12 text-center">
             {% if not current_user %}
-            <h1>Please sign in</h1>
+            <h1>{{ _('Please sign in') }}</h1>
             {% end %}
         </div>
     </div>

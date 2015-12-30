@@ -1,10 +1,9 @@
 import logging
 import datetime
-import redis
+from redis import StrictRedis
 from tornado import web, websocket, escape
-
 # In this case we use 1 redis connection(client) for all queries
-r = redis.StrictRedis(db=1)
+r = StrictRedis(db=1)
 
 logger = logging.getLogger('info-log')
 logger.disabled = True
@@ -17,9 +16,12 @@ class UserMixin:
         return escape.xhtml_escape(user) if user else None
 
 
+
 class LoginHandler(web.RequestHandler):
     def get(self):
-        self.render('login.html', title='Authentication')
+        _ = self.locale.translate
+        title = _('Authentication')
+        self.render('login.html', title=title)
 
     def post(self):
         self.set_secure_cookie('user', self.get_argument('name'))
@@ -34,6 +36,7 @@ class LogoutHandler(web.RequestHandler):
 
 
 class ChannelHandler(UserMixin, web.RequestHandler):
+
     @web.authenticated
     def get(self, *args, **kwargs):
         title = kwargs.get('channel', 'main')
@@ -42,8 +45,8 @@ class ChannelHandler(UserMixin, web.RequestHandler):
         user_cache = r.zrange('channels:{}:users'.format(title), 0, -1)
         users = user_cache if user_cache else ['Nobody here']
         channels = ('ORANGERY', 'ISOLATOR', 'WHATEVER', 'MILKY WAY', 'COOKIES')
-        self.render('index.html', messages=messages,
-                    title=title, users=users, channels=channels)
+        self.render('index.html', title=title, messages=messages,
+                    users=users, channels=channels)
 
 
 class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):

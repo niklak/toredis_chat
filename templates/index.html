@@ -9,7 +9,7 @@
         </div>
         <div class="col-md-9">
             <h1 class="text-center" id="channel" data-title="{{ title }}">
-                <span class="text-primary">{{ title }}</span> channel
+                {{ _('channel') }} # <span class="text-primary">{{ title }}</span>
             </h1>
         </div>
     </div>
@@ -29,7 +29,8 @@
             <div class="row">
                 <div class="col-md-12" id="input">
                     <p class="text-info">
-                        <h5>You signed as <b class="text-success">{{ current_user }}</b> (<a href="/logout">logout</a>).
+                        <h5>{{ _('You are signed as') }} <b class="text-success">{{ current_user }}</b>
+                    (<a href="/logout">{{ _('logout') }}</a>).
                         <span id="error" class="text-danger"></span>
                         </h5>
                     </p>
@@ -39,9 +40,9 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="input-group">
-                                    <input name="body" id="message" type="text" class="form-control" placeholder="start typing">
+                                    <input name="body" id="message" type="text" class="form-control" placeholder="{{ _('start typing') }}">
                                     <span class="input-group-btn">
-                                        <button type="submit" class="btn btn-primary">SEND</button>
+                                        <button type="submit" class="btn btn-primary">{{ _('send') }}</button>
                                     </span>
                                 </div>
                             </div>
@@ -54,7 +55,7 @@
 {% end %}
 
 {% block script %}
-    <script src="{{ static_url("chat.js") }}" type="text/javascript"></script>
+    <script src="{{ static_url('chat.js') }}" type="text/javascript"></script>
 {% end %}
 
 
