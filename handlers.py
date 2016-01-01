@@ -110,9 +110,9 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
                 )}
 
     def send_updates(self, chat):
-        chnl_waiters = tuple(filter(lambda x: x[0] == self.chnl, self.waiters))
+        chnl_waiters = tuple(w for c, w in self.waiters if c == self.chnl)
         logger.info('Sending message to %d waiters', len(chnl_waiters))
-        for _, waiter in chnl_waiters:
+        for waiter in chnl_waiters:
             try:
                 waiter.write_message(chat)
             except:
