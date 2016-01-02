@@ -1,5 +1,8 @@
+import signal
 from tornado import web, ioloop, locale
+from tornado.httpserver import HTTPServer
 from conf import settings
+from server_handlers import shutdown
 import handlers
 
 
@@ -16,11 +19,22 @@ class Application(web.Application):
 
 
 def main():
+
     locale.load_gettext_translations('locale', 'messages')
     app = Application()
+    server = HTTPServer(app)
     # single thread && single process
-    app.listen(8888)
-    ioloop.IOLoop.current().start()
+    server.listen(8888)
+
+    loop = ioloop.IOLoop.current()
+
+    def sig_shutdown_handler(sig, frame):
+        loop.add_callback_from_signal(shutdown, loop=loop, server=server)
+
+    signal.signal(signal.SIGTERM, sig_shutdown_handler)
+    signal.signal(signal.SIGINT, sig_shutdown_handler)
+
+    loop.start()
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ settings = {
     'static_path': os.path.join(os.path.dirname(__file__), 'static'),
     'login_url': '/login',
     'xsrf_cookies': True,
-    'debug': False,
+    'debug': True,
     'autoreload': True,
     'server_traceback': True,
 }

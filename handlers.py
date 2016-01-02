@@ -6,7 +6,7 @@ from tornado import web, websocket, escape
 r = StrictRedis(db=1)
 
 logger = logging.getLogger('info-log')
-logger.disabled = True
+#logger.disabled = True
 # It is not a publish / subscribe example
 
 
