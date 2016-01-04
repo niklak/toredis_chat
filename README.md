@@ -1,6 +1,6 @@
 # toredis_chat
 
-This example does not uses redis publish / subscribe mechanism.
+This example does not use redis publish / subscribe mechanism.
 It is based on tornado websocket example but it uses redis instead cache list. 
 Also it demonstrates how chat rooms (channels) can be implemented.
 
@@ -10,3 +10,4 @@ This example chat requires:
   2. python(3);
   3. redis.py;
   4. tornado;
+

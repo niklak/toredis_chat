@@ -6,7 +6,8 @@ from tornado import web, websocket, escape
 r = StrictRedis(db=1)
 
 logger = logging.getLogger('info-log')
-#logger.disabled = True
+# logger.disabled = True
+
 # It is not a publish / subscribe example
 
 
@@ -14,7 +15,6 @@ class UserMixin:
     def get_current_user(self):
         user = self.get_secure_cookie('user')
         return escape.xhtml_escape(user) if user else None
-
 
 
 class LoginHandler(web.RequestHandler):
@@ -50,9 +50,9 @@ class ChannelHandler(UserMixin, web.RequestHandler):
 
 
 class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
-    # Waiters set can contain objects, tuple, named_tuple
-    # or some construction containing waiter objects (instance of this class)
-    # and its identifier.
+    # Waiters set can contain objects, tuples, instances of the named_tuple
+    # or some other construction containing waiter objects
+    # (instance of this class) and its identifier.
     waiters = set()
 
     def get_compression_options(self):
