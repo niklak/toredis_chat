@@ -5,8 +5,8 @@ from tornado import web, websocket, escape
 # In this case we use 1 redis connection(client) for all queries
 r = StrictRedis(db=1)
 
-logger = logging.getLogger('info-log')
-# logger.disabled = True
+logger = logging.getLogger('handlers')
+#logger.disabled = True
 
 # It is not a publish / subscribe example
 

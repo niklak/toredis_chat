@@ -1,9 +1,10 @@
 import signal
-from tornado import web, ioloop, locale
+from tornado import web, ioloop, locale, options
 from tornado.httpserver import HTTPServer
 from conf import settings
 from server_handlers import shutdown
 import handlers
+from handlers_ import ChatSocketHandler
 
 
 class Application(web.Application):
@@ -13,13 +14,13 @@ class Application(web.Application):
             (r"/channels/(?P<channel>\w+)/", handlers.ChannelHandler),
             (r"/login", handlers.LoginHandler),
             (r"/logout", handlers.LogoutHandler),
-            (r"/chatsocket/(?P<channel>\w+)/", handlers.ChatSocketHandler),
+            (r"/chatsocket/(?P<channel>\w+)/", ChatSocketHandler),
         ]
         super(Application, self).__init__(handlers=h, **settings)
 
 
 def main():
-
+    options.parse_command_line()
     locale.load_gettext_translations('locale', 'messages')
     app = Application()
     server = HTTPServer(app)
