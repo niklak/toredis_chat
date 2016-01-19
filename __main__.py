@@ -4,7 +4,6 @@ from tornado.httpserver import HTTPServer
 from conf import settings
 from server_handlers import shutdown
 import handlers
-from handlers_ import ChatSocketHandler
 
 
 class Application(web.Application):
@@ -14,7 +13,7 @@ class Application(web.Application):
             (r"/channels/(?P<channel>\w+)/", handlers.ChannelHandler),
             (r"/login", handlers.LoginHandler),
             (r"/logout", handlers.LogoutHandler),
-            (r"/chatsocket/(?P<channel>\w+)/", ChatSocketHandler),
+            (r"/chatsocket/(?P<channel>\w+)/", handlers.ChatSocketHandler),
         ]
         super(Application, self).__init__(handlers=h, **settings)
 

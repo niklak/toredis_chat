@@ -87,6 +87,9 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
 
     def on_message(self, message):
         parsed = escape.json_decode(message)
+        logger.warning('GOT MESSAGE %s' % parsed)
+        if 'dummy' in parsed:
+            return
         chat = {
             'parent': 'inbox',
             'body': parsed['body'] if len(parsed['body']) <= 128 else 'D`oh.',

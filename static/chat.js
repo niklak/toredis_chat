@@ -1,7 +1,7 @@
 window.onload = function(){
-    console.log('READY!');
     var socket = new SocketHandler();
     var form = document.getElementById('messageform');
+
     form.onsubmit = function(e){
         socket.send_message(form);
         return false;
@@ -27,6 +27,10 @@ var SocketHandler = function() {
     var url = "ws://" + location.host + "/chatsocket/" + title + '/';
 
     var sock = new WebSocket(url);
+    var intervalId;
+    sock.onopen = function(){
+        intervalId = setInterval(function(){sock.send('{"dummy": 1}');}, 150000);
+    };
     sock.onmessage = function(event) {
         var message = JSON.parse(event.data);
         var parent = document.getElementById(message.parent);
@@ -39,11 +43,8 @@ var SocketHandler = function() {
             parent.innerHTML = message.html;
         }
     };
-    sock.onerror = function(event){
-        // delete in production
-        console.log('SERVER ERROR HAS OCCURRED!')
-    };
     sock.onclose = function(event){
+        clearInterval(intervalId);
         console.log(event); // delete in production
         var ulist = document.getElementById('user_list');
         ulist.innerHTML = '<h4>Information unavailable</h4>';
