@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="ui three column stackable centered grid">
+    <div class="column">
+        <form action="/login" method="post">
+            {% module xsrf_form_html() %}
+            <div class="ui fluid action input">
+                <input type="text" name="name">
+                <button type="submit" class="ui primary button">{{ _('Sign in') }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% end %}
