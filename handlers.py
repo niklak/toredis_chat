@@ -64,7 +64,7 @@ class ChatSocketHandler(UserMixin, websocket.WebSocketHandler):
         self.waiters.add((self.chnl, self))
 
         self.chnl_key = 'channels:{}:users'.format(self.chnl)
-        count = int(r.zcount(self.chnl_key, 0, - 1))
+        count = int(r.zcard(self.chnl_key))
         r.zadd(self.chnl_key, count+1, self.current_user)
         users = r.zrange(self.chnl_key, 0, -1)
 

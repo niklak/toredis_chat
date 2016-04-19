@@ -12,7 +12,7 @@ window.onload = function(){
             return false;
         }
     };
-    inbox = document.getElementById('inbox');
+    var inbox = document.getElementById('inbox');
     inbox.scrollTop = inbox.scrollHeight;
     document.getElementById('message').select();
 };
